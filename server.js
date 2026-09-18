@@ -10,7 +10,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(express.static('public'));
+app.use(express.static(require('path').join(__dirname, 'public')));
 
 const {
   TWILIO_ACCOUNT_SID,
