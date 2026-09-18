@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto Dialer</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="twilio.min.js"></script>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <span class="logo">&#128222; Auto Dialer</span>
+    <span id="twilio-badge" class="badge-status"></span>
+  </div>
+  <div class="header-stats">
+    <div class="stat-chip">Calls today: <strong id="stat-total">0</strong></div>
+    <div class="stat-chip">Answered: <strong id="stat-answered">0</strong></div>
+    <div class="stat-chip">Converted: <strong id="stat-converted">0</strong></div>
+    <div class="stat-chip">Queue: <strong id="stat-queue">0</strong></div>
+  </div>
+  <label class="power-dial-toggle">
+    <input type="checkbox" id="power-dial-toggle">
+    <span class="toggle-track"></span>
+    Power Dial
+  </label>
+</header>
+
+<main class="layout">
+
+  <!-- LEFT: Prospect Queue -->
+  <aside class="panel panel-queue">
+    <div class="panel-header">
+      <h2>Queue <span class="badge" id="queue-count">0</span></h2>
+      <div class="queue-actions">
+        <button class="btn btn-sm" id="btn-add-prospect">+ Add</button>
+        <button class="btn btn-sm" id="btn-import">Import CSV</button>
+        <input type="file" id="csv-input" accept=".csv" style="display:none">
+      </div>
+    </div>
+    <div id="prospect-list" class="prospect-list">
+      <div class="empty-state">No prospects yet.<br>Click "+ Add" or import a CSV.</div>
+    </div>
+  </aside>
+
+  <!-- CENTER: Dialer -->
+  <section class="panel panel-dialer">
+    <div class="dialer-card">
+
+      <div class="prospect-info" id="prospect-info">
+        <div class="prospect-avatar" id="prospect-avatar">?</div>
+        <div class="prospect-details">
+          <h2 id="current-name">Select a prospect</h2>
+          <div class="prospect-phone-large" id="current-phone">&#8212;</div>
+          <div class="prospect-meta">
+            <span id="current-company"></span>
+            <span id="current-email"></span>
+          </div>
+        </div>
+        <button class="btn-remove-prospect" id="btn-remove-prospect" title="Remove prospect">&#10006;</button>
+      </div>
+
+      <div class="call-status-bar">
+        <span id="call-status" class="call-status status-ready">Ready</span>
+        <span id="call-timer" class="call-timer">0:00</span>
+      </div>
+
+      <div class="call-buttons">
+        <button class="btn btn-call" id="btn-call" disabled>
+          <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.58.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.24 1.01L6.6 10.8z"/></svg>
+          Call
+        </button>
+        <button class="btn btn-hangup" id="btn-hangup" style="display:none">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.58.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.24 1.01L6.6 10.8z"/></svg>
+          Hang Up
+        </button>
+        <button class="btn btn-next" id="btn-next">Next &#8594;</button>
+      </div>
+
+      <!-- Outcome Section (visible after call or manual log) -->
+      <div class="outcome-section" id="outcome-section">
+        <div class="outcome-header">
+          <h3>Log Outcome</h3>
+          <button class="btn-dismiss" id="btn-dismiss-outcome">&#10005;</button>
+        </div>
+        <div class="outcome-buttons">
+          <button class="btn-outcome outcome-answered"   data-outcome="answered">&#10003; Answered</button>
+          <button class="btn-outcome outcome-voicemail"  data-outcome="voicemail">&#128236; Voicemail</button>
+          <button class="btn-outcome outcome-no-answer"  data-outcome="no_answer">&#10005; No Answer</button>
+          <button class="btn-outcome outcome-callback"   data-outcome="callback">&#128197; Callback</button>
+          <button class="btn-outcome outcome-converted"  data-outcome="converted">&#11088; Converted!</button>
+          <button class="btn-outcome outcome-dnc"        data-outcome="dnc">&#128683; DNC</button>
+        </div>
+        <div id="callback-date-row" style="display:none">
+          <label class="field-label">Callback date &amp; time</label>
+          <input type="datetime-local" id="callback-date">
+        </div>
+        <textarea id="call-notes" placeholder="Notes (optional)..." rows="2"></textarea>
+      </div>
+
+      <button class="btn-manual-log" id="btn-manual-log">+ Log call manually</button>
+
+    </div>
+  </section>
+
+  <!-- RIGHT: Call Log -->
+  <aside class="panel panel-log">
+    <div class="panel-header">
+      <h2>Call Log</h2>
+    </div>
+    <div id="call-log" class="call-log">
+      <div class="empty-state">No calls yet today.</div>
+    </div>
+  </aside>
+
+</main>
+
+<!-- Add Prospect Modal -->
+<div class="modal-overlay" id="add-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Add Prospect</h2>
+      <button class="modal-close" data-close="add-modal">&#10006;</button>
+    </div>
+    <form id="form-add">
+      <div class="field">
+        <label>Name *</label>
+        <input name="name" required placeholder="John Smith">
+      </div>
+      <div class="field">
+        <label>Phone *</label>
+        <input name="phone" required placeholder="5551234567">
+      </div>
+      <div class="field">
+        <label>Company</label>
+        <input name="company" placeholder="Acme Corp">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input name="email" type="email" placeholder="john@acme.com">
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <textarea name="notes" rows="2" placeholder="Initial notes..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close="add-modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Prospect</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
