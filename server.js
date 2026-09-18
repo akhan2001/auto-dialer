@@ -115,14 +115,19 @@ app.get('/api/stats', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Auto Dialer → http://localhost:${PORT}`);
-  if (!twilioReady) {
-    console.log('  ⚠  Twilio not configured — add env vars to enable calling');
-    return;
-  }
-  setupWebhook();
-});
+
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Auto Dialer → http://localhost:${PORT}`);
+    if (!twilioReady) {
+      console.log('  ⚠  Twilio not configured — add env vars to enable calling');
+      return;
+    }
+    setupWebhook();
+  });
+}
+
+module.exports = app;
 
 async function setupWebhook() {
   const twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);

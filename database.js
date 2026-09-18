@@ -1,7 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const FILE = path.join(__dirname, 'dialer.json');
+const FILE = process.env.VERCEL
+  ? path.join('/tmp', 'dialer.json')
+  : path.join(__dirname, 'dialer.json');
 
 function load() {
   try { return JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch { return null; }
