@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+server.log
+server.err
+npm-debug.log*
+
+# Runtime / generated
+dialer.json
+provision.js
+*.pid
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temp folders
+auto-dialer-new/

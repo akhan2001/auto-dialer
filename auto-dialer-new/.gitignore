@@ -1,6 +1,0 @@
-node_modules/
-.env
-dialer.json
-server.log
-server.err
-provision.js
