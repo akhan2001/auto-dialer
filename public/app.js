@@ -152,7 +152,7 @@ function setCurrentProspect(p) {
   $('outcome-section').classList.remove('show');
   callLogged = false;
 
-  if (device) $('btn-call').disabled = false;
+  $('btn-call').disabled = false;
 
   document.querySelectorAll('.prospect-card').forEach(el => {
     el.classList.toggle('active', el.dataset.id == p.id);
