@@ -132,12 +132,17 @@ module.exports = app;
 async function setupWebhook() {
   const twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
-  // On Railway, a public domain is provided automatically
   if (process.env.RAILWAY_PUBLIC_DOMAIN) {
     const voiceUrl = `https://${process.env.RAILWAY_PUBLIC_DOMAIN}/voice`;
     await twilioClient.applications(TWILIO_TWIML_APP_SID).update({ voiceUrl, voiceMethod: 'POST' });
     console.log(`  Webhook: ${voiceUrl}`);
     console.log('  ✓ Ready to make calls!');
+    return;
+  }
+
+  // On Railway without a public domain configured yet
+  if (process.env.RAILWAY_PROJECT_ID) {
+    console.log('  ⚠  No public domain found. Go to Railway → Service → Settings → Networking → Generate Domain, then redeploy.');
     return;
   }
 
@@ -148,10 +153,14 @@ async function setupWebhook() {
 function startTunnel(twilioClient) {
   const { spawn } = require('child_process');
   const path = require('path');
-  const cfBin = path.join(__dirname, 'node_modules', '.bin', 'cloudflared.cmd');
+
+  const isWin = process.platform === 'win32';
+  const cfBin = path.join(__dirname, 'node_modules', '.bin', isWin ? 'cloudflared.cmd' : 'cloudflared');
 
   console.log('  Starting Cloudflare tunnel...');
-  const cf = spawn('cmd.exe', ['/c', cfBin, 'tunnel', '--url', `http://localhost:${PORT}`], { windowsHide: true });
+  const cf = isWin
+    ? spawn('cmd.exe', ['/c', cfBin, 'tunnel', '--url', `http://localhost:${PORT}`], { windowsHide: true })
+    : spawn(cfBin, ['tunnel', '--url', `http://localhost:${PORT}`]);
 
   let urlFound = false;
 
@@ -169,6 +178,7 @@ function startTunnel(twilioClient) {
     }
   }
 
+  cf.on('error', err => console.error('  Tunnel spawn error:', err.message));
   cf.stdout.on('data', d => d.toString().split('\n').forEach(parseLine));
   cf.stderr.on('data', d => d.toString().split('\n').forEach(parseLine));
   cf.on('close', code => {
