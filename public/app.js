@@ -12,7 +12,6 @@ const $ = id => document.getElementById(id);
 
 document.addEventListener('DOMContentLoaded', async () => {
   await Promise.all([loadProspects(), loadStats(), loadCallLog()]);
-  await initTwilio();
 
   $('btn-call').addEventListener('click', startCall);
   $('btn-hangup').addEventListener('click', hangUp);
@@ -67,7 +66,6 @@ async function initTwilio() {
       setStatus('Ready', 'ready');
       badge.textContent = config.callerNumber || 'Twilio connected';
       badge.className = 'badge-status ok';
-      $('btn-call').disabled = !currentProspect;
     });
     device.on('error', err => {
       const msg = err.message || '';
@@ -179,8 +177,15 @@ async function removeCurrentProspect() {
 }
 
 // ── Calling ────────────────────────────────────────────────────────────────
+let twilioInitPromise = null;
+
 async function startCall() {
-  if (!device || !currentProspect || activeCall) return;
+  if (!currentProspect || activeCall) return;
+  if (!device) {
+    if (!twilioInitPromise) twilioInitPromise = initTwilio();
+    await twilioInitPromise;
+    if (!device) return;
+  }
 
   try {
     $('btn-call').disabled = true;
