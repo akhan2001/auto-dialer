@@ -90,7 +90,14 @@ async function initTwilio() {
 
 // ── Prospects ──────────────────────────────────────────────────────────────
 async function loadProspects() {
-  const res = await fetch('/api/prospects');
+  let res;
+  for (let i = 0; i < 3; i++) {
+    try {
+      res = await fetch('/api/prospects');
+      if (res.ok) break;
+    } catch { await new Promise(r => setTimeout(r, 800)); }
+  }
+  if (!res || !res.ok) return;
   prospects = await res.json();
   renderQueue();
 
